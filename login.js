@@ -2833,11 +2833,11 @@ function addScopes(parameters, scopes, correlationId, addOidcScopes = true, defa
 function addClientId(parameters, clientId) {
   parameters.set(CLIENT_ID, clientId);
 }
-function addRedirectUri(parameters, redirectUri) {
-  parameters.set(REDIRECT_URI, redirectUri);
+function addRedirectUri(parameters, redirectUri2) {
+  parameters.set(REDIRECT_URI, redirectUri2);
 }
-function addPostLogoutRedirectUri(parameters, redirectUri) {
-  parameters.set(POST_LOGOUT_URI, redirectUri);
+function addPostLogoutRedirectUri(parameters, redirectUri2) {
+  parameters.set(POST_LOGOUT_URI, redirectUri2);
 }
 function addIdTokenHint(parameters, idTokenHint) {
   parameters.set(ID_TOKEN_HINT, idTokenHint);
@@ -5613,10 +5613,10 @@ async function addDpopTokenProofHeader(headers, request, tokenEndpoint, cryptoUt
     tokenEndpoint
   }, keyId, request.correlationId);
 }
-function createTokenQueryParameters(request, clientId, redirectUri, performanceClient) {
+function createTokenQueryParameters(request, clientId, redirectUri2, performanceClient) {
   const parameters = /* @__PURE__ */ new Map();
   if (request.embeddedClientId) {
-    addBrokerParameters(parameters, clientId, redirectUri);
+    addBrokerParameters(parameters, clientId, redirectUri2);
   }
   if (request.extraQueryParameters) {
     addExtraParameters(parameters, request.extraQueryParameters);
@@ -10092,8 +10092,8 @@ var BaseInteractionClient = class {
 };
 function getRedirectUri(requestRedirectUri, clientConfigRedirectUri, logger, correlationId) {
   logger.verbose("0bd1la", correlationId);
-  const redirectUri = requestRedirectUri || clientConfigRedirectUri || "";
-  return UrlString.getAbsoluteUrl(redirectUri, getCurrentUri(), correlationId);
+  const redirectUri2 = requestRedirectUri || clientConfigRedirectUri || "";
+  return UrlString.getAbsoluteUrl(redirectUri2, getCurrentUri(), correlationId);
 }
 function initializeServerTelemetryManager(apiId, clientId, correlationId, browserStorage, logger, forceRefresh, enabled = true) {
   logger.verbose("1p12tq", correlationId);
@@ -10441,8 +10441,8 @@ var StandardInteractionClient = class extends BaseInteractionClient {
   }
 };
 async function initializeAuthorizationRequest(request, interactionType, config, browserCrypto, browserStorage, logger, performanceClient, correlationId) {
-  const redirectUri = getRedirectUri(request.redirectUri, config.auth.redirectUri, logger, correlationId);
-  if (new URL(redirectUri).origin !== new URL(window.location.href).origin) {
+  const redirectUri2 = getRedirectUri(request.redirectUri, config.auth.redirectUri, logger, correlationId);
+  if (new URL(redirectUri2).origin !== new URL(window.location.href).origin) {
     logger.warning("08qbvw", correlationId);
     performanceClient.addFields({ isRedirectUriCrossOrigin: true }, correlationId);
   }
@@ -10453,7 +10453,7 @@ async function initializeAuthorizationRequest(request, interactionType, config, 
   const baseRequest = await invokeAsync(initializeBaseRequest, InitializeBaseRequest, logger, performanceClient, correlationId)({ ...request, correlationId }, config, performanceClient, logger, correlationId);
   const interactionRequest = {
     ...baseRequest,
-    redirectUri,
+    redirectUri: redirectUri2,
     state,
     nonce: request.nonce || createNewGuid(),
     responseMode: config.auth.OIDCOptions.responseMode
@@ -11074,10 +11074,10 @@ var PlatformAuthInteractionClient = class _PlatformAuthInteractionClient extends
       timeout: this.config.system.redirectNavigationTimeout,
       noHistory: false
     };
-    const redirectUri = navigateToLoginRequestUrl ? UrlString.getAbsoluteUrl(request.redirectStartPage || window.location.href, getCurrentUri(), this.correlationId) : getRedirectUri(request.redirectUri, this.config.auth.redirectUri, this.logger, this.correlationId);
+    const redirectUri2 = navigateToLoginRequestUrl ? UrlString.getAbsoluteUrl(request.redirectStartPage || window.location.href, getCurrentUri(), this.correlationId) : getRedirectUri(request.redirectUri, this.config.auth.redirectUri, this.logger, this.correlationId);
     rootMeasurement.end({ success: true });
     try {
-      await this.navigationClient.navigateExternal(redirectUri, navigationOptions);
+      await this.navigationClient.navigateExternal(redirectUri2, navigationOptions);
     } catch (e) {
       this.browserStorage.removeItem(this.browserStorage.generateCacheKey(TemporaryCacheKeys.NATIVE_REQUEST));
       await this.resetGeneratedDpopRequestKeyBestEffort(nativeRequest);
@@ -12784,7 +12784,7 @@ var PlatformAuthDOMHandler = class _PlatformAuthDOMHandler {
     }
   }
   initializePlatformDOMRequest(request) {
-    const { accountId, clientId, authority, scope, redirectUri, correlationId, state, preferBinding, enclave, reqCnf, extraParametersNoCache, extraParameters, ...remainingProperties } = request;
+    const { accountId, clientId, authority, scope, redirectUri: redirectUri2, correlationId, state, preferBinding, enclave, reqCnf, extraParametersNoCache, extraParameters, ...remainingProperties } = request;
     const requestCorrelationId = this.getCorrelationId(correlationId);
     this.logger.trace(`15d6yv ${this.platformAuthType}`, requestCorrelationId);
     delete remainingProperties.resourceRequestMethod;
@@ -12802,7 +12802,7 @@ var PlatformAuthDOMHandler = class _PlatformAuthDOMHandler {
         ...validExtraParameters
       },
       isSecurityTokenService: false,
-      redirectUri,
+      redirectUri: redirectUri2,
       scope,
       state,
       preferBinding,
@@ -16148,7 +16148,14 @@ var copy = {
   sl: { title: "\u0160olska opa\u017Eanja", loading: "Priprava prijave \u2026", ready: "Prijavi se s \u0161olskim ra\u010Dunom.", success: "Prijava uspe\u0161na", failed: "Prijava ni uspela", signIn: "Prijava z Microsoft 365", signOut: "Odjava", busy: "Po\u010Dakaj na Microsoftovo okno." },
   hu: { title: "Iskolai megfigyel\xE9sek", loading: "Bejelentkez\xE9s el\u0151k\xE9sz\xEDt\xE9se \u2026", ready: "Jelentkezz be az iskolai fi\xF3koddal.", success: "Sikeres bejelentkez\xE9s", failed: "Sikertelen bejelentkez\xE9s", signIn: "Bejelentkez\xE9s a Microsoft 365-tel", signOut: "Kijelentkez\xE9s", busy: "V\xE1rj a Microsoft ablak\xE1ra." }
 };
-var app = new PublicClientApplication({ auth: { clientId: "c4486d58-6a65-4c76-a172-feef9a1aed6f", authority: "https://login.microsoftonline.com/organizations", redirectUri: "https://sasohladen-max.github.io/solska-opazanja/redirect.html" }, cache: { cacheLocation: "sessionStorage" } });
+var redirectUri = new URL("./redirect.html", location.href).href;
+var app = new PublicClientApplication({ auth: {
+  clientId: "c4486d58-6a65-4c76-a172-feef9a1aed6f",
+  authority: "https://login.microsoftonline.com/organizations",
+  redirectUri,
+  postLogoutRedirectUri: redirectUri,
+  ...window.self !== window.top ? { popupRelayUri: new URL("./relay.html", location.href).href } : {}
+}, cache: { cacheLocation: "sessionStorage" } });
 var account;
 var problem = "";
 var busy = false;
@@ -16168,7 +16175,7 @@ action.onclick = async () => {
   render();
   try {
     if (account) {
-      await app.logoutPopup({ account, postLogoutRedirectUri: new URL("./", location.href).href });
+      await app.logoutPopup({ account, postLogoutRedirectUri: redirectUri });
       account = null;
     } else {
       const result = await app.loginPopup({ scopes: ["openid", "profile"], prompt: "select_account" });

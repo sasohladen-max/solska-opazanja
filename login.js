@@ -16191,8 +16191,50 @@ var account;
 var problem = "";
 var busy = false;
 var initialized = false;
+var panel = document.createElement("section");
+var preview = document.createElement("p");
+var saveButton = document.createElement("button");
+var outcome = document.createElement("p");
+outcome.setAttribute("role", "status");
+panel.append(preview, saveButton, outcome);
+apiStatus.after(panel);
+var pilotText = {
+  sl: { preview: "Poskusni vnos \xB7 10. 11. 2026 \xB7 4. a \xB7 matematika \xB7 doma\u010Da naloga. Lina Vzor\u010Dna: DA. Bor Vzor\u010Dni: ODSOTEN.", save: "Potrdi in dokon\u010Dno shrani testni vnos", saved: "Testni vnos je shranjen.", already_saved: "Ta vnos je \u017Ee shranjen.", pending: "Shranjujem \u2026", unknown: "Izida ni mogo\u010De potrditi. Preveri list Opa\u017Eanja pred ponovitvijo." },
+  hu: { preview: "Tesztbejegyz\xE9s \xB7 2026. 11. 10. \xB7 4. a \xB7 matematika \xB7 h\xE1zi feladat. Lina Vzor\u010Dna: IGEN. Bor Vzor\u010Dni: HI\xC1NYZIK.", save: "Tesztbejegyz\xE9s v\xE9gleges ment\xE9se", saved: "A tesztbejegyz\xE9s mentve.", already_saved: "Ez a bejegyz\xE9s m\xE1r szerepel a t\xE1bl\xE1zatban.", pending: "Ment\xE9s \u2026", unknown: "A ment\xE9s eredm\xE9nye bizonytalan. Ellen\u0151rizd az Opa\u017Eanja munkalapot." }
+};
+var writeState = "";
+var writeDetail = "";
+saveButton.onclick = async () => {
+  if (busy || apiState !== "allowed" || !account || ["saved", "already_saved"].includes(writeState)) return;
+  busy = true;
+  writeState = "pending";
+  writeDetail = "";
+  render();
+  try {
+    const token = await app.acquireTokenSilent({ account, scopes: [apiScope] });
+    const response = await fetch("https://solska-opazanja-api.saso-hladen.workers.dev/pilot/observation", { method: "POST", headers: { Authorization: "Bearer " + token.accessToken }, signal: AbortSignal.timeout(3e4) });
+    const { code } = await response.json();
+    if (response.status === 201 && code === "saved") writeState = "saved";
+    else if (response.status === 409 && code === "already_saved") writeState = "already_saved";
+    else {
+      writeState = "unknown";
+      writeDetail = "HTTP " + response.status + " \xB7 " + code;
+    }
+  } catch {
+    writeState = "unknown";
+  } finally {
+    busy = false;
+    render();
+  }
+};
 function render() {
   const t = copy[language.value];
+  const p = pilotText[language.value];
+  panel.hidden = !account || apiState !== "allowed";
+  preview.textContent = p.preview;
+  saveButton.textContent = p.save;
+  saveButton.disabled = busy || ["saved", "already_saved"].includes(writeState);
+  outcome.textContent = [p[writeState], writeDetail].filter(Boolean).join(" \xB7 ");
   document.documentElement.lang = language.value;
   document.title = document.querySelector("h1").textContent = t.title;
   document.querySelector("[role=status]").textContent = problem ? t.failed + " \xB7 " + problem : busy ? t.busy : !initialized ? t.loading : account ? t.success + " \xB7 " + (account.username || account.name) : t.ready;
@@ -16212,6 +16254,8 @@ action.onclick = async () => {
       account = null;
       apiState = "";
       detail = "";
+      writeState = "";
+      writeDetail = "";
     } else {
       const result = await app.loginPopup({ scopes: [apiScope], prompt: "select_account" });
       account = result.account;

@@ -16,21 +16,21 @@ function shape(parent, type, attributes, text) {
 function charts(months) {
   const section = document.createElement("section");
   section.className = "charts";
-  function plot(title, maximum, percent) {
+  function plot(title, line) {
     const fig2 = document.createElement("figure"), caption = document.createElement("figcaption");
     caption.textContent = title;
     fig2.append(caption);
     section.append(fig2);
     const svg = shape(fig2, "svg", { viewBox: "0 0 490 194", "aria-hidden": "true" });
-    const y = (v) => 151 - 120 * v / maximum, x = (i) => 50 + 45 * i;
-    for (const v of /* @__PURE__ */ new Set([0, percent ? 50 : Math.ceil(maximum / 2), maximum])) {
+    const y = (v) => 151 - 120 * v / 100, x = (i) => 50 + 45 * i;
+    for (const v of [0, 25, 50, 75, 100]) {
       shape(svg, "line", { x1: 42, x2: 474, y1: y(v), y2: y(v), stroke: "#d4e2dd" });
-      shape(svg, "text", { x: 38, y: y(v) + 4, "text-anchor": "end" }, v + (percent ? "%" : ""));
+      shape(svg, "text", { x: 38, y: y(v) + 4, "text-anchor": "end" }, v + "%");
     }
     let prior;
     months.forEach(({ yes, n }, i) => {
       shape(svg, "text", { x: x(i), y: 179, "text-anchor": "middle" }, ["IX", "X", "XI", "XII", "I", "II", "III", "IV", "V", "VI"][i]);
-      if (percent) {
+      if (line) {
         if (!n) {
           prior = null;
           return;
@@ -40,15 +40,16 @@ function charts(months) {
         shape(svg, "circle", { cx: x(i), cy, r: 5, fill: "#166851" });
         prior = { x: x(i), y: cy };
       } else {
-        for (const [value, color, offset] of [[yes, "#166851", -13], [n - yes, "#bb6739", 2]]) {
-          if (value) shape(svg, "rect", { x: x(i) + offset, y: y(value), width: 11, height: 120 * value / maximum, fill: color });
+        if (!n) return;
+        for (const [value, color, offset] of [[100 * yes / n, "#166851", -13], [100 * (n - yes) / n, "#bb6739", 2]]) {
+          if (value) shape(svg, "rect", { x: x(i) + offset, y: y(value), width: 11, height: 120 * value / 100, fill: color });
         }
       }
     });
     return fig2;
   }
-  plot("Dele\u017E DA med prisotnimi", 100, true);
-  const fig = plot("\u0160tevilo opa\u017Eanj", Math.max(1, ...months.flatMap((m) => [m.yes, m.n - m.yes])), false);
+  plot("Dele\u017E DA med prisotnimi", true);
+  const fig = plot("Dele\u017E oznak DA in NE", false);
   const legend = document.createElement("div");
   legend.className = "legend";
   for (const [label, color] of [["DA", "#166851"], ["NE", "#bb6739"]]) {
@@ -16497,7 +16498,7 @@ function setup(data) {
     }
   };
 }
-var translations = { "Dele\u017E DA med prisotnimi": "Az IGEN ar\xE1nya a jelenl\xE9v\u0151k k\xF6z\xF6tt", "\u0160tevilo opa\u017Eanj": "Megfigyel\xE9sek sz\xE1ma", "Napredek": "Halad\xE1s", "\u0160olsko leto": "Tan\xE9v", "Raven": "Szint", "U\u010Denec": "Tanul\xF3", "Razred": "Oszt\xE1ly", "\u0160ola": "Iskola", "Vsi predmeti": "Minden tant\xE1rgy", "Mesec": "H\xF3nap", "Dele\u017E": "Ar\xE1ny", "Brez podatka": "Nincs adat", "September": "Szeptember", "Oktober": "Okt\xF3ber", "November": "November", "December": "December", "Januar": "Janu\xE1r", "Februar": "Febru\xE1r", "Marec": "M\xE1rcius", "April": "\xC1prilis", "Maj": "M\xE1jus", "Junij": "J\xFAnius", "Opravljena doma\u010Da naloga": "Elk\xE9sz\xEDtette a h\xE1zi feladatot", "Zahtevane \u0161olske potreb\u0161\u010Dine so prine\u0161ene k pouku": "Elhozta az \xF3r\xE1ra a sz\xFCks\xE9ges tanszereket", "U\u010Denec je aktivno vklju\u010Den v pouk": "A tanul\xF3 akt\xEDvan r\xE9szt vesz az \xF3r\xE1n", "Doma\u010Da naloga": "H\xE1zi feladat", "DO\u0160 Prosenjakovci": "P\xE1rtosfalvi K\xE9tnyelv\u0171 \xC1ltal\xE1nos Iskola", "Pregled shranjenih opa\u017Eanj": "Mentett megfigyel\xE9sek", "Datum": "D\xE1tum", "Oddelek": "Oszt\xE1ly", "Predmet": "Tant\xE1rgy", "Kategorija": "Kateg\xF3ria", "DA / prisotni": "Igen / jelenl\xE9v\u0151k", "Odsotni": "Hi\xE1nyz\xF3k", "Trenutno nima\u0161 dodeljenih predmetov.": "Jelenleg nincs hozz\xE1d rendelt tant\xE1rgy.", "Oddelek in predmet": "Oszt\xE1ly \xE9s tant\xE1rgy", "Shrani opa\u017Eanje": "Megfigyel\xE9s ment\xE9se", "DA": "IGEN", "NE": "NEM", "ODSOTEN": "HI\xC1NYZIK", "Opa\u017Eanje je shranjeno.": "A megfigyel\xE9s mentve.", "Vnos za ta dan, oddelek in predmet \u017Ee obstaja.": "Erre a napra, oszt\xE1lyra \xE9s tant\xE1rgyra m\xE1r van ilyen kateg\xF3ri\xE1j\xFA bejegyz\xE9s.", "Shranjevanje ni potrjeno.": "A ment\xE9s nem igazolt.", "Sloven\u0161\u010Dina": "Szlov\xE9n nyelv", "Mad\u017Ear\u0161\u010Dina": "Magyar nyelv", "Matematika": "Matematika", "MAT": "MAT", "Nem\u0161\u010Dina": "N\xE9met nyelv", "Likovna umetnost": "K\xE9pz\u0151m\u0171v\xE9szet", "Glasbena umetnost": "Zenem\u0171v\xE9szet", "Dru\u017Eba": "T\xE1rsadalomismeret", "Geografija": "F\xF6ldrajz", "Zgodovina": "T\xF6rt\xE9nelem", "Domovinska in dr\u017Eavljanska kultura in etika": "Hon- \xE9s \xE1llampolg\xE1ri kult\xFAra, valamint etika", "Spoznavanje okolja": "K\xF6rnyezetismeret", "Fizika": "Fizika", "Kemija": "K\xE9mia", "Biologija": "Biol\xF3gia", "Naravoslovje": "Term\xE9szettudom\xE1ny", "Naravoslovje in tehnika": "Term\xE9szettudom\xE1ny \xE9s technika", "Tehnika in tehnologija": "Technika \xE9s technol\xF3gia", "Gospodinjstvo": "H\xE1ztart\xE1stan", "\u0160port": "Sport", "Angle\u0161\u010Dina": "Angol nyelv", "Ustvarimo svojo aplikacijo": "K\xE9sz\xEDts\xFCnk saj\xE1t alkalmaz\xE1st", "Obdelava gradiv: Les": "Anyagmegmunk\xE1l\xE1s: fa", "Obdelava gradiv: Kovina": "Anyagmegmunk\xE1l\xE1s: f\xE9m", "\u0160port za sprostitev": "Szabadid\u0151sport", "Likovno snovanje": "Vizu\xE1lis alkot\xE1s", "Izbirni predmeti": "V\xE1laszthat\xF3 tant\xE1rgyak", "Dodelitve u\u010Diteljev": "Tan\xE1ri beoszt\xE1sok", "U\u010Ditelj": "Tan\xE1r", "Vpogled": "Betekint\xE9s", "samo svoje": "csak a saj\xE1tok", "vse": "az eg\xE9sz iskola", "V stolpcu oddelka ozna\u010Di predmete izbranega u\u010Ditelja.": "Az oszt\xE1ly oszlop\xE1ban jel\xF6ld be a kiv\xE1lasztott tan\xE1r tant\xE1rgyait.", "Dodaj predmet": "Tant\xE1rgy hozz\xE1ad\xE1sa", "Dodaj na seznam": "Hozz\xE1ad\xE1s a list\xE1hoz", "Shrani za u\u010Ditelja": "Tan\xE1ri beoszt\xE1s ment\xE9se", "Neshranjene spremembe": "Nem mentett m\xF3dos\xEDt\xE1sok", "Shranjeno za": "Mentve", "Zavr\u017Ee\u0161 neshranjene spremembe?": "Elveted a nem mentett m\xF3dos\xEDt\xE1sokat?", "Shranjevanje ni uspelo.": "A ment\xE9s sikertelen.", "Dodelitve so se spremenile ali je predmet \u017Ee zaseden. Osve\u017Ei stran.": "A beoszt\xE1s megv\xE1ltozott vagy a tant\xE1rgy m\xE1r foglalt. Friss\xEDtsd az oldalt.", "Dostop do administracije ni uspel. Uporabi skrbni\u0161ki ra\u010Dun O\u0160 Ver\u017Eej.": "Az adminisztr\xE1ci\xF3 nem \xE9rhet\u0151 el. Haszn\xE1ld az O\u0160 Ver\u017Eej rendszergazdai fi\xF3kj\xE1t." };
+var translations = { "Dele\u017E DA med prisotnimi": "Az IGEN ar\xE1nya a jelenl\xE9v\u0151k k\xF6z\xF6tt", "Dele\u017E oznak DA in NE": "Az IGEN \xE9s NEM ar\xE1nya", "Napredek": "Halad\xE1s", "\u0160olsko leto": "Tan\xE9v", "Raven": "Szint", "U\u010Denec": "Tanul\xF3", "Razred": "Oszt\xE1ly", "\u0160ola": "Iskola", "Vsi predmeti": "Minden tant\xE1rgy", "Mesec": "H\xF3nap", "Dele\u017E": "Ar\xE1ny", "Brez podatka": "Nincs adat", "September": "Szeptember", "Oktober": "Okt\xF3ber", "November": "November", "December": "December", "Januar": "Janu\xE1r", "Februar": "Febru\xE1r", "Marec": "M\xE1rcius", "April": "\xC1prilis", "Maj": "M\xE1jus", "Junij": "J\xFAnius", "Opravljena doma\u010Da naloga": "Elk\xE9sz\xEDtette a h\xE1zi feladatot", "Zahtevane \u0161olske potreb\u0161\u010Dine so prine\u0161ene k pouku": "Elhozta az \xF3r\xE1ra a sz\xFCks\xE9ges tanszereket", "U\u010Denec je aktivno vklju\u010Den v pouk": "A tanul\xF3 akt\xEDvan r\xE9szt vesz az \xF3r\xE1n", "Doma\u010Da naloga": "H\xE1zi feladat", "DO\u0160 Prosenjakovci": "P\xE1rtosfalvi K\xE9tnyelv\u0171 \xC1ltal\xE1nos Iskola", "Pregled shranjenih opa\u017Eanj": "Mentett megfigyel\xE9sek", "Datum": "D\xE1tum", "Oddelek": "Oszt\xE1ly", "Predmet": "Tant\xE1rgy", "Kategorija": "Kateg\xF3ria", "DA / prisotni": "Igen / jelenl\xE9v\u0151k", "Odsotni": "Hi\xE1nyz\xF3k", "Trenutno nima\u0161 dodeljenih predmetov.": "Jelenleg nincs hozz\xE1d rendelt tant\xE1rgy.", "Oddelek in predmet": "Oszt\xE1ly \xE9s tant\xE1rgy", "Shrani opa\u017Eanje": "Megfigyel\xE9s ment\xE9se", "DA": "IGEN", "NE": "NEM", "ODSOTEN": "HI\xC1NYZIK", "Opa\u017Eanje je shranjeno.": "A megfigyel\xE9s mentve.", "Vnos za ta dan, oddelek in predmet \u017Ee obstaja.": "Erre a napra, oszt\xE1lyra \xE9s tant\xE1rgyra m\xE1r van ilyen kateg\xF3ri\xE1j\xFA bejegyz\xE9s.", "Shranjevanje ni potrjeno.": "A ment\xE9s nem igazolt.", "Sloven\u0161\u010Dina": "Szlov\xE9n nyelv", "Mad\u017Ear\u0161\u010Dina": "Magyar nyelv", "Matematika": "Matematika", "MAT": "MAT", "Nem\u0161\u010Dina": "N\xE9met nyelv", "Likovna umetnost": "K\xE9pz\u0151m\u0171v\xE9szet", "Glasbena umetnost": "Zenem\u0171v\xE9szet", "Dru\u017Eba": "T\xE1rsadalomismeret", "Geografija": "F\xF6ldrajz", "Zgodovina": "T\xF6rt\xE9nelem", "Domovinska in dr\u017Eavljanska kultura in etika": "Hon- \xE9s \xE1llampolg\xE1ri kult\xFAra, valamint etika", "Spoznavanje okolja": "K\xF6rnyezetismeret", "Fizika": "Fizika", "Kemija": "K\xE9mia", "Biologija": "Biol\xF3gia", "Naravoslovje": "Term\xE9szettudom\xE1ny", "Naravoslovje in tehnika": "Term\xE9szettudom\xE1ny \xE9s technika", "Tehnika in tehnologija": "Technika \xE9s technol\xF3gia", "Gospodinjstvo": "H\xE1ztart\xE1stan", "\u0160port": "Sport", "Angle\u0161\u010Dina": "Angol nyelv", "Ustvarimo svojo aplikacijo": "K\xE9sz\xEDts\xFCnk saj\xE1t alkalmaz\xE1st", "Obdelava gradiv: Les": "Anyagmegmunk\xE1l\xE1s: fa", "Obdelava gradiv: Kovina": "Anyagmegmunk\xE1l\xE1s: f\xE9m", "\u0160port za sprostitev": "Szabadid\u0151sport", "Likovno snovanje": "Vizu\xE1lis alkot\xE1s", "Izbirni predmeti": "V\xE1laszthat\xF3 tant\xE1rgyak", "Dodelitve u\u010Diteljev": "Tan\xE1ri beoszt\xE1sok", "U\u010Ditelj": "Tan\xE1r", "Vpogled": "Betekint\xE9s", "samo svoje": "csak a saj\xE1tok", "vse": "az eg\xE9sz iskola", "V stolpcu oddelka ozna\u010Di predmete izbranega u\u010Ditelja.": "Az oszt\xE1ly oszlop\xE1ban jel\xF6ld be a kiv\xE1lasztott tan\xE1r tant\xE1rgyait.", "Dodaj predmet": "Tant\xE1rgy hozz\xE1ad\xE1sa", "Dodaj na seznam": "Hozz\xE1ad\xE1s a list\xE1hoz", "Shrani za u\u010Ditelja": "Tan\xE1ri beoszt\xE1s ment\xE9se", "Neshranjene spremembe": "Nem mentett m\xF3dos\xEDt\xE1sok", "Shranjeno za": "Mentve", "Zavr\u017Ee\u0161 neshranjene spremembe?": "Elveted a nem mentett m\xF3dos\xEDt\xE1sokat?", "Shranjevanje ni uspelo.": "A ment\xE9s sikertelen.", "Dodelitve so se spremenile ali je predmet \u017Ee zaseden. Osve\u017Ei stran.": "A beoszt\xE1s megv\xE1ltozott vagy a tant\xE1rgy m\xE1r foglalt. Friss\xEDtsd az oldalt.", "Dostop do administracije ni uspel. Uporabi skrbni\u0161ki ra\u010Dun O\u0160 Ver\u017Eej.": "Az adminisztr\xE1ci\xF3 nem \xE9rhet\u0151 el. Haszn\xE1ld az O\u0160 Ver\u017Eej rendszergazdai fi\xF3kj\xE1t." };
 function translated(s) {
   if (Object.hasOwn(translations, s)) return translations[s];
   const pair = s.match(/^([1-9]\. [^·]+ · )(.+)$/);

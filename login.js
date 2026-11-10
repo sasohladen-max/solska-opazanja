@@ -11984,18 +11984,18 @@ async function getCodeForm(frame, config, authority, request, logger, performanc
   return createForm(frame, action2, fields);
 }
 function createForm(frame, action2, fields) {
-  const form = frame.createElement("form");
-  form.method = "post";
-  form.action = action2;
+  const form2 = frame.createElement("form");
+  form2.method = "post";
+  form2.action = action2;
   Object.keys(fields).forEach((name3) => {
     const input = frame.createElement("input");
     input.hidden = true;
     input.name = name3;
     input.value = fields[name3];
-    form.appendChild(input);
+    form2.appendChild(input);
   });
-  frame.body.appendChild(form);
-  return form;
+  frame.body.appendChild(form2);
+  return form2;
 }
 async function handleResponsePlatformBroker(request, accountId, apiId, config, browserStorage, nativeStorage, eventHandler, logger, performanceClient, platformAuthProvider, tokenBindingKeyManager = new TokenBindingKeyManager(logger, performanceClient)) {
   logger.verbose("11qcow", request.correlationId);
@@ -13409,8 +13409,8 @@ var PopupClient = class extends StandardInteractionClient {
     }
     const popupWindow = popupParams.popup || this.openPopup("about:blank", popupParams);
     const getForm = isEAR ? getEARForm : getCodeForm;
-    const form = await getForm(popupWindow.document, this.config, discoveredAuthority, request, this.logger, this.performanceClient);
-    form.submit();
+    const form2 = await getForm(popupWindow.document, this.config, discoveredAuthority, request, this.logger, this.performanceClient);
+    form2.submit();
     return popupWindow;
   }
   async waitForPopupResponse(request, popupWindow, popupWindowParent) {
@@ -13535,8 +13535,8 @@ var RedirectClient = class extends StandardInteractionClient {
         throw createBrowserAuthError(cryptoKeyNotFound, this.correlationId);
       }
       this.browserStorage.cacheAuthorizeRequest(redirectRequest, this.correlationId, pkceCodes.verifier);
-      const form = await getEARForm(document, this.config, discoveredAuthority, redirectRequest, this.logger, this.performanceClient);
-      form.submit();
+      const form2 = await getEARForm(document, this.config, discoveredAuthority, redirectRequest, this.logger, this.performanceClient);
+      form2.submit();
       return await new Promise((resolve, reject) => {
         setTimeout(() => {
           reject(createBrowserAuthError(timedOut, "", "failed_to_redirect"));
@@ -13555,8 +13555,8 @@ var RedirectClient = class extends StandardInteractionClient {
     const correlationId = request.correlationId;
     const discoveredAuthority = await invokeAsync(getDiscoveredAuthority, StandardInteractionClientGetDiscoveredAuthority, this.logger, this.performanceClient, correlationId)(this.config, this.correlationId, this.performanceClient, this.browserStorage, this.logger);
     this.browserStorage.cacheAuthorizeRequest(request, this.correlationId);
-    const form = await getCodeForm(document, this.config, discoveredAuthority, request, this.logger, this.performanceClient);
-    form.submit();
+    const form2 = await getCodeForm(document, this.config, discoveredAuthority, request, this.logger, this.performanceClient);
+    form2.submit();
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         reject(createBrowserAuthError(timedOut, "", "failed_to_redirect"));
@@ -13827,16 +13827,16 @@ async function initiateCodeFlowWithPost(frame, config, authority, request, logge
   if (!frame.contentDocument) {
     throw "No document associated with iframe!";
   }
-  const form = await getCodeForm(frame.contentDocument, config, authority, request, logger, performanceClient);
-  form.submit();
+  const form2 = await getCodeForm(frame.contentDocument, config, authority, request, logger, performanceClient);
+  form2.submit();
   return frame;
 }
 async function initiateEarRequest(frame, config, authority, request, logger, performanceClient) {
   if (!frame.contentDocument) {
     throw "No document associated with iframe!";
   }
-  const form = await getEARForm(frame.contentDocument, config, authority, request, logger, performanceClient);
-  form.submit();
+  const form2 = await getEARForm(frame.contentDocument, config, authority, request, logger, performanceClient);
+  form2.submit();
   return frame;
 }
 function createHiddenIframe() {
@@ -16154,16 +16154,32 @@ var apiStatus = document.createElement("p");
 apiStatus.setAttribute("role", "status");
 action.after(apiStatus);
 var apiCopy = {
-  sl: { checking: "Preverjam dostop \u2026", allowed: "Dostop do testnega API-ja je potrjen.", denied: "API je zavrnil dostop. Preveri ra\u010Dun O\u0160 Ver\u017Eej in dovoljenje observations.write.", retry: "Za ponovni preizkus se odjavi in prijavi.", network: "Preverjanje ni uspelo." },
-  hu: { checking: "Hozz\xE1f\xE9r\xE9s ellen\u0151rz\xE9se \u2026", allowed: "A teszt API-hoz val\xF3 hozz\xE1f\xE9r\xE9s rendben van.", denied: "Az API megtagadta a hozz\xE1f\xE9r\xE9st. Ellen\u0151rizd az O\u0160 Ver\u017Eej-fi\xF3kot \xE9s az observations.write enged\xE9lyt.", retry: "Az \xFAjrapr\xF3b\xE1lkoz\xE1shoz jelentkezz ki, majd be.", network: "Az ellen\u0151rz\xE9s sikertelen." }
+  sl: { checking: "Preverjam dostop \u2026", allowed: "Dostop do testnega API-ja je potrjen.", denied: "API je zavrnil dostop. Preveri \u0161olski prijavni naslov na seznamu u\u010Diteljev.", retry: "Za ponovni preizkus se odjavi in prijavi.", network: "Preverjanje ni uspelo." },
+  hu: { checking: "Hozz\xE1f\xE9r\xE9s ellen\u0151rz\xE9se \u2026", allowed: "A teszt API-hoz val\xF3 hozz\xE1f\xE9r\xE9s rendben van.", denied: "Az API megtagadta a hozz\xE1f\xE9r\xE9st. Ellen\u0151rizd az iskolai bejelentkez\xE9si c\xEDmedet.", retry: "Az \xFAjrapr\xF3b\xE1lkoz\xE1shoz jelentkezz ki, majd be.", network: "Az ellen\u0151rz\xE9s sikertelen." }
 };
 var apiState = "";
 var detail = "";
+async function teacherHeaders(accessToken) {
+  const profile = await app.acquireTokenSilent({ account, scopes: ["https://graph.microsoft.com/User.Read"] });
+  return { Authorization: "Bearer " + accessToken, "X-Profile-Token": profile.accessToken };
+}
 async function checkAccess(accessToken) {
   apiState = "checking";
   detail = "";
   render();
   try {
+    if (account.tenantId === "597f2111-d34e-45b1-b3c9-9aa5b91047cc") {
+      const response2 = await fetch(base + "/teacher/form", { headers: await teacherHeaders(accessToken), cache: "no-store" });
+      const data2 = await response2.json();
+      if (response2.ok) {
+        setup(data2);
+        apiState = "teacher";
+        return;
+      }
+      apiState = response2.status === 403 ? "denied" : "network";
+      detail = data2.code;
+      return;
+    }
     const response = await fetch("https://solska-opazanja-api.saso-hladen.workers.dev/pilot/session", {
       headers: { Authorization: "Bearer " + accessToken },
       cache: "no-store",
@@ -16228,6 +16244,8 @@ saveButton.onclick = async () => {
   }
 };
 function render() {
+  form.hidden = !account || apiState !== "teacher";
+  form.inert = busy;
   const t = copy[language.value];
   const p = pilotText[language.value];
   panel.hidden = !account || apiState !== "allowed";
@@ -16241,7 +16259,71 @@ function render() {
   action.textContent = account ? t.signOut : t.signIn;
   action.disabled = !initialized || busy;
   const labels = apiCopy[language.value];
-  apiStatus.textContent = apiState ? [labels[apiState], detail, ["denied", "network"].includes(apiState) ? labels.retry : ""].filter(Boolean).join(" \xB7 ") : "";
+  apiStatus.textContent = apiState === "teacher" ? "" : apiState ? [labels[apiState], detail, ["denied", "network"].includes(apiState) ? labels.retry : ""].filter(Boolean).join(" \xB7 ") : "";
+}
+var base = "https://solska-opazanja-api.saso-hladen.workers.dev";
+var form = document.createElement("form");
+apiStatus.after(form);
+function setup(data) {
+  form.replaceChildren();
+  const hu = language.value === "hu";
+  if (!data.pairs.length) {
+    form.textContent = hu ? "Nincs tant\xE1rgy hozz\xE1rendelve." : "Trenutno nima\u0161 dodeljenih predmetov.";
+    return;
+  }
+  function field(text, input) {
+    const label = document.createElement("label");
+    label.style.display = "block";
+    label.append(text + " ", input);
+    form.append(label);
+    return input;
+  }
+  const pair = field(hu ? "Oszt\xE1ly \xE9s tant\xE1rgy" : "Oddelek in predmet", document.createElement("select"));
+  data.pairs.forEach(([g, s], i) => pair.add(new Option(g + " \xB7 " + s, i)));
+  const date = field(hu ? "D\xE1tum" : "Datum", document.createElement("input"));
+  date.type = "date";
+  date.required = true;
+  date.value = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Ljubljana" }).format(/* @__PURE__ */ new Date());
+  const title = document.createElement("h2");
+  title.textContent = hu ? "H\xE1zi feladat" : "Doma\u010Da naloga";
+  form.append(title);
+  const list = document.createElement("div"), submit = document.createElement("button"), status = document.createElement("p");
+  status.setAttribute("role", "status");
+  submit.textContent = hu ? "Ment\xE9s" : "Shrani opa\u017Eanje";
+  form.append(list, submit, status);
+  function draw() {
+    list.replaceChildren();
+    status.textContent = "";
+    for (const p of data.pupils.filter((p2) => p2.group === data.pairs[pair.value][0])) {
+      const label = document.createElement("label");
+      label.style.display = "block";
+      const pick = document.createElement("select");
+      pick.name = p.id;
+      pick.required = true;
+      for (const [value, caption] of [["", "\u2014"], ["YES", hu ? "IGEN" : "DA"], ["NO", hu ? "NEM" : "NE"], ["ABSENT", hu ? "HI\xC1NYZIK" : "ODSOTEN"]]) pick.add(new Option(caption, value));
+      label.append(p.name + " ", pick);
+      list.append(label);
+    }
+  }
+  pair.onchange = draw;
+  draw();
+  form.onsubmit = async (e) => {
+    e.preventDefault();
+    if (busy) return;
+    busy = true;
+    render();
+    try {
+      const [group, subject] = data.pairs[pair.value];
+      const token = await app.acquireTokenSilent({ account, scopes: [apiScope] });
+      const r = await fetch(base + "/teacher/save", { method: "POST", headers: { ...await teacherHeaders(token.accessToken), "Content-Type": "application/json" }, body: JSON.stringify({ group, subject, date: date.value, category: "homework", marks: Object.fromEntries(new FormData(form)) }) });
+      status.textContent = r.ok ? hu ? "Mentve." : "Opa\u017Eanje je shranjeno." : r.status === 409 ? hu ? "M\xE1r mentve." : "Vnos za ta dan, oddelek in predmet \u017Ee obstaja." : "HTTP " + r.status;
+    } catch {
+      status.textContent = hu ? "A ment\xE9s nem igazolt." : "Shranjevanje ni potrjeno.";
+    } finally {
+      busy = false;
+      render();
+    }
+  };
 }
 language.onchange = render;
 action.onclick = async () => {
@@ -16252,12 +16334,13 @@ action.onclick = async () => {
     if (account) {
       await app.logoutPopup({ account, postLogoutRedirectUri: redirectUri });
       account = null;
+      form.replaceChildren();
       apiState = "";
       detail = "";
       writeState = "";
       writeDetail = "";
     } else {
-      const result = await app.loginPopup({ scopes: [apiScope], prompt: "select_account" });
+      const result = await app.loginPopup({ scopes: [apiScope], extraScopesToConsent: ["https://graph.microsoft.com/User.Read"], prompt: "select_account" });
       account = result.account;
       app.setActiveAccount(account);
       await checkAccess(result.accessToken);

@@ -30,8 +30,13 @@ function charts(months) {
     months.forEach(({ yes, n }, i) => {
       shape(svg, "text", { x: x(i), y: 179, "text-anchor": "middle" }, ["IX", "X", "XI", "XII", "I", "II", "III", "IV", "V", "VI"][i]);
       if (!n) return;
-      for (const [value, color, offset] of [[100 * yes / n, "#166851", -13], [100 * (n - yes) / n, "#bb6739", 2]]) {
-        if (value) shape(svg, "rect", { x: x(i) + offset, y: y(value), width: 11, height: 120 * value / 100, fill: color });
+      for (const [count, color, offset] of [[yes, "#166851", -13], [n - yes, "#bb6739", 2]]) {
+        const value = 100 * count / n;
+        if (value) {
+          const bar = shape(svg, "rect", { x: x(i) + offset, y: y(value), width: 11, height: 120 * value / 100, fill: color });
+          const percentage = (count / n).toLocaleString("sl", { style: "percent", maximumFractionDigits: 1 });
+          shape(bar, "title", {}, percentage + " \xB7 " + count + "/" + n);
+        }
       }
     });
     return fig2;

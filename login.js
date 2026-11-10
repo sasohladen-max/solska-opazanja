@@ -16142,6 +16142,11 @@ var JsonWebTokenTypes2 = Constants_exports.JsonWebTokenTypes;
 var OIDC_DEFAULT_SCOPES2 = Constants_exports.OIDC_DEFAULT_SCOPES;
 
 // login.js
+function loginError(error) {
+  const message = [error.errorMessage, error.message].filter(Boolean).join(" ");
+  const code = message.match(/AADSTS[0-9]+/i)?.[0] || (Number(error.errorNo) > 0 ? "AADSTS" + error.errorNo : "");
+  return [error.errorCode || error.name, code, error.correlationId].filter(Boolean).join(" \xB7 ");
+}
 var language = document.querySelector("select");
 var action = document.querySelector("button");
 var copy = {
@@ -16160,6 +16165,7 @@ var apiCopy = {
 var apiState = "";
 var detail = "";
 async function teacherHeaders(accessToken) {
+  if (account.tenantId === "d51e37e2-770b-4960-9a25-e60e19700a51") return { Authorization: "Bearer " + accessToken };
   const profile = await app.acquireTokenSilent({ account, scopes: ["https://graph.microsoft.com/User.Read"] });
   return { Authorization: "Bearer " + accessToken, "X-Profile-Token": profile.accessToken };
 }
@@ -16168,7 +16174,7 @@ async function checkAccess(accessToken) {
   detail = "";
   render();
   try {
-    if (account.tenantId === "597f2111-d34e-45b1-b3c9-9aa5b91047cc") {
+    if (["597f2111-d34e-45b1-b3c9-9aa5b91047cc", "d51e37e2-770b-4960-9a25-e60e19700a51"].includes(account.tenantId)) {
       const response2 = await fetch(base + "/teacher/form", { headers: await teacherHeaders(accessToken), cache: "no-store" });
       const data2 = await response2.json();
       if (response2.ok) {
@@ -16192,8 +16198,9 @@ async function checkAccess(accessToken) {
     }
     apiState = response.status === 401 || response.status === 403 ? "denied" : "network";
     detail = "HTTP " + response.status;
-  } catch {
+  } catch (error) {
     apiState = "network";
+    detail = loginError(error);
   }
 }
 var app = new PublicClientApplication({ auth: {
@@ -16346,7 +16353,7 @@ action.onclick = async () => {
       await checkAccess(result.accessToken);
     }
   } catch (error) {
-    problem = error.errorCode || error.name;
+    problem = loginError(error);
   } finally {
     busy = false;
     render();
@@ -16364,13 +16371,13 @@ try {
       await checkAccess(result.accessToken);
     } catch (error) {
       apiState = "network";
-      detail = error.errorCode || error.name;
+      detail = loginError(error);
     } finally {
       busy = false;
     }
   }
 } catch (error) {
-  problem = error.errorCode || error.name;
+  problem = loginError(error);
 }
 render();
 /*! Bundled license information:

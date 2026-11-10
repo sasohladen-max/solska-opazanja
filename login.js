@@ -16149,6 +16149,37 @@ var copy = {
   hu: { title: "Iskolai megfigyel\xE9sek", loading: "Bejelentkez\xE9s el\u0151k\xE9sz\xEDt\xE9se \u2026", ready: "Jelentkezz be az iskolai fi\xF3koddal.", success: "Sikeres bejelentkez\xE9s", failed: "Sikertelen bejelentkez\xE9s", signIn: "Bejelentkez\xE9s a Microsoft 365-tel", signOut: "Kijelentkez\xE9s", busy: "V\xE1rj a Microsoft ablak\xE1ra." }
 };
 var redirectUri = new URL("./redirect.html", location.href).href;
+var apiScope = "api://21b295f6-e32b-4a36-ae0f-1534de5173db/observations.write";
+var apiStatus = document.createElement("p");
+apiStatus.setAttribute("role", "status");
+action.after(apiStatus);
+var apiCopy = {
+  sl: { checking: "Preverjam dostop \u2026", allowed: "Dostop do testnega API-ja je potrjen.", denied: "API je zavrnil dostop. Preveri ra\u010Dun O\u0160 Ver\u017Eej in dovoljenje observations.write.", retry: "Za ponovni preizkus se odjavi in prijavi.", network: "Preverjanje ni uspelo." },
+  hu: { checking: "Hozz\xE1f\xE9r\xE9s ellen\u0151rz\xE9se \u2026", allowed: "A teszt API-hoz val\xF3 hozz\xE1f\xE9r\xE9s rendben van.", denied: "Az API megtagadta a hozz\xE1f\xE9r\xE9st. Ellen\u0151rizd az O\u0160 Ver\u017Eej-fi\xF3kot \xE9s az observations.write enged\xE9lyt.", retry: "Az \xFAjrapr\xF3b\xE1lkoz\xE1shoz jelentkezz ki, majd be.", network: "Az ellen\u0151rz\xE9s sikertelen." }
+};
+var apiState = "";
+var detail = "";
+async function checkAccess(accessToken) {
+  apiState = "checking";
+  detail = "";
+  render();
+  try {
+    const response = await fetch("https://solska-opazanja-api.saso-hladen.workers.dev/pilot/session", {
+      headers: { Authorization: "Bearer " + accessToken },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15e3)
+    });
+    const data = await response.json();
+    if (response.ok && data.code === "pilot_authorized") {
+      apiState = "allowed";
+      return;
+    }
+    apiState = response.status === 401 || response.status === 403 ? "denied" : "network";
+    detail = "HTTP " + response.status;
+  } catch {
+    apiState = "network";
+  }
+}
 var app = new PublicClientApplication({ auth: {
   clientId: "c4486d58-6a65-4c76-a172-feef9a1aed6f",
   authority: "https://login.microsoftonline.com/organizations",
@@ -16167,6 +16198,8 @@ function render() {
   document.querySelector("[role=status]").textContent = problem ? t.failed + " \xB7 " + problem : busy ? t.busy : !initialized ? t.loading : account ? t.success + " \xB7 " + (account.username || account.name) : t.ready;
   action.textContent = account ? t.signOut : t.signIn;
   action.disabled = !initialized || busy;
+  const labels = apiCopy[language.value];
+  apiStatus.textContent = apiState ? [labels[apiState], detail, ["denied", "network"].includes(apiState) ? labels.retry : ""].filter(Boolean).join(" \xB7 ") : "";
 }
 language.onchange = render;
 action.onclick = async () => {
@@ -16177,10 +16210,13 @@ action.onclick = async () => {
     if (account) {
       await app.logoutPopup({ account, postLogoutRedirectUri: redirectUri });
       account = null;
+      apiState = "";
+      detail = "";
     } else {
-      const result = await app.loginPopup({ scopes: ["openid", "profile"], prompt: "select_account" });
+      const result = await app.loginPopup({ scopes: [apiScope], prompt: "select_account" });
       account = result.account;
       app.setActiveAccount(account);
+      await checkAccess(result.accessToken);
     }
   } catch (error) {
     problem = error.errorCode || error.name;
@@ -16194,6 +16230,18 @@ try {
   await app.initialize();
   account = app.getActiveAccount();
   initialized = true;
+  if (account) {
+    busy = true;
+    try {
+      const result = await app.acquireTokenSilent({ account, scopes: [apiScope] });
+      await checkAccess(result.accessToken);
+    } catch (error) {
+      apiState = "network";
+      detail = error.errorCode || error.name;
+    } finally {
+      busy = false;
+    }
+  }
 } catch (error) {
   problem = error.errorCode || error.name;
 }

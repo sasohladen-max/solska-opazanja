@@ -16296,30 +16296,18 @@ async function checkAccess(accessToken) {
   detail = "";
   render();
   try {
-    if (["597f2111-d34e-45b1-b3c9-9aa5b91047cc", "d51e37e2-770b-4960-9a25-e60e19700a51"].includes(account.tenantId)) {
-      const response2 = await fetch(base + "/teacher/form", { headers: await teacherHeaders(accessToken), cache: "no-store" });
-      const data2 = await response2.json();
-      if (response2.ok) {
-        setup(data2);
+    {
+      const response = await fetch(base + "/teacher/form", { headers: await teacherHeaders(accessToken), cache: "no-store" });
+      const data = await response.json();
+      if (response.ok) {
+        setup(data);
         apiState = "teacher";
         return;
       }
-      apiState = response2.status === 403 ? "denied" : "network";
-      detail = data2.code;
+      apiState = response.status === 403 ? "denied" : "network";
+      detail = data.code;
       return;
     }
-    const response = await fetch("https://solska-opazanja-api.saso-hladen.workers.dev/pilot/session", {
-      headers: { Authorization: "Bearer " + accessToken },
-      cache: "no-store",
-      signal: AbortSignal.timeout(15e3)
-    });
-    const data = await response.json();
-    if (response.ok && data.code === "pilot_authorized") {
-      apiState = "allowed";
-      return;
-    }
-    apiState = response.status === 401 || response.status === 403 ? "denied" : "network";
-    detail = "HTTP " + response.status;
   } catch (error) {
     apiState = "network";
     detail = loginError(error);

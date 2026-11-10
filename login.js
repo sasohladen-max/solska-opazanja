@@ -4,6 +4,65 @@ var __export = (target, all) => {
     __defProp(target, name3, { get: all[name3], enumerable: true });
 };
 
+// charts.js
+var ns = "http://www.w3.org/2000/svg";
+function shape(parent, type, attributes, text) {
+  const node = document.createElementNS(ns, type);
+  for (const [key, value] of Object.entries(attributes)) node.setAttribute(key, value);
+  if (text !== void 0) node.textContent = text;
+  parent.append(node);
+  return node;
+}
+function charts(months) {
+  const section = document.createElement("section");
+  section.className = "charts";
+  function plot(title, maximum, percent) {
+    const fig2 = document.createElement("figure"), caption = document.createElement("figcaption");
+    caption.textContent = title;
+    fig2.append(caption);
+    section.append(fig2);
+    const svg = shape(fig2, "svg", { viewBox: "0 0 490 194", "aria-hidden": "true" });
+    const y = (v) => 151 - 120 * v / maximum, x = (i) => 50 + 45 * i;
+    for (const v of /* @__PURE__ */ new Set([0, percent ? 50 : Math.ceil(maximum / 2), maximum])) {
+      shape(svg, "line", { x1: 42, x2: 474, y1: y(v), y2: y(v), stroke: "#d4e2dd" });
+      shape(svg, "text", { x: 38, y: y(v) + 4, "text-anchor": "end" }, v + (percent ? "%" : ""));
+    }
+    let prior;
+    months.forEach(({ yes, n, total }, i) => {
+      shape(svg, "text", { x: x(i), y: 179, "text-anchor": "middle" }, ["IX", "X", "XI", "XII", "I", "II", "III", "IV", "V", "VI"][i]);
+      if (percent) {
+        if (!n) {
+          prior = null;
+          return;
+        }
+        const cy = y(100 * yes / n);
+        if (prior) shape(svg, "line", { x1: prior.x, y1: prior.y, x2: x(i), y2: cy, stroke: "#166851", "stroke-width": 3 });
+        shape(svg, "circle", { cx: x(i), cy, r: 5, fill: "#166851" });
+        prior = { x: x(i), y: cy };
+      } else {
+        let sum = 0;
+        for (const [v, color] of [[yes, "#166851"], [n - yes, "#bb6739"], [total - n, "#879798"]]) {
+          sum += v;
+          if (v) shape(svg, "rect", { x: x(i) - 10, y: y(sum), width: 20, height: 120 * v / maximum, fill: color });
+        }
+      }
+    });
+    return fig2;
+  }
+  plot("Dele\u017E DA med prisotnimi", 100, true);
+  const fig = plot("\u0160tevilo opa\u017Eanj", Math.max(1, ...months.map((m) => m.total)), false);
+  const legend = document.createElement("div");
+  legend.className = "legend";
+  for (const [label, color] of [["DA", "#166851"], ["NE", "#bb6739"], ["ODSOTEN", "#879798"]]) {
+    const item = document.createElement("span");
+    item.style.setProperty("--swatch", color);
+    item.textContent = label;
+    legend.append(item);
+  }
+  fig.append(legend);
+  return section;
+}
+
 // progress.js
 function progress(data, categories) {
   const box = document.createElement("details"), heading = document.createElement("summary"), filters = document.createElement("section"), table = document.createElement("table");
@@ -41,7 +100,7 @@ function progress(data, categories) {
       th.textContent = name3;
       head.append(th);
     }
-    const body = table.createTBody();
+    const body = table.createTBody(), months = [];
     for (let i = 0; i < 10; i++) {
       const month = (8 + i) % 12 + 1, key = Number(year.value) + (month < 9 ? 1 : 0) + "-" + String(month).padStart(2, "0");
       const marks = rows.filter((r) => r[0].startsWith(key) && r[3] === category.value && (!subject.value || subject.value === r[2])).map((r) => r[5]);
@@ -57,7 +116,10 @@ function progress(data, categories) {
         cell.append(bar, " " + (yes / n).toLocaleString("sl", { style: "percent", maximumFractionDigits: 1 }));
       } else cell.textContent = "Brez podatka";
       row.insertCell().textContent = marks.length - n;
+      months.push({ yes, n, total: marks.length });
     }
+    box.querySelector(".charts")?.remove();
+    box.append(charts(months));
   }
   filters.onchange = render2;
   render2();
@@ -16217,7 +16279,7 @@ var redirectUri = new URL("./redirect.html", location.href).href;
 var apiScope = "api://21b295f6-e32b-4a36-ae0f-1534de5173db/observations.write";
 var apiStatus = document.createElement("p");
 apiStatus.setAttribute("role", "status");
-action.after(apiStatus);
+document.querySelector("#auth-status").after(apiStatus);
 var apiCopy = {
   sl: { checking: "Preverjam dostop \u2026", allowed: "Dostop do testnega API-ja je potrjen.", denied: "API je zavrnil dostop. Preveri \u0161olski prijavni naslov na seznamu u\u010Diteljev.", retry: "Za ponovni preizkus se odjavi in prijavi.", network: "Preverjanje ni uspelo." },
   hu: { checking: "Hozz\xE1f\xE9r\xE9s ellen\u0151rz\xE9se \u2026", allowed: "A teszt API-hoz val\xF3 hozz\xE1f\xE9r\xE9s rendben van.", denied: "Az API megtagadta a hozz\xE1f\xE9r\xE9st. Ellen\u0151rizd az iskolai bejelentkez\xE9si c\xEDmedet.", retry: "Az \xFAjrapr\xF3b\xE1lkoz\xE1shoz jelentkezz ki, majd be.", network: "Az ellen\u0151rz\xE9s sikertelen." }
@@ -16322,7 +16384,8 @@ function render() {
   outcome.textContent = [p[writeState], writeDetail].filter(Boolean).join(" \xB7 ");
   document.documentElement.lang = language.value;
   document.title = document.querySelector("h1").textContent = t.title;
-  document.querySelector("[role=status]").textContent = problem ? t.failed + " \xB7 " + problem : busy ? t.busy : !initialized ? t.loading : account ? t.success + " \xB7 " + (account.username || account.name) : t.ready;
+  document.querySelector("#identity").textContent = account ? [account.name, account.username ? "(" + account.username + ")" : ""].filter(Boolean).join(" ") : "";
+  document.querySelector("#auth-status").textContent = problem ? t.failed + " \xB7 " + problem : busy ? t.busy : !initialized ? t.loading : account ? "" : t.ready;
   action.textContent = account ? t.signOut : t.signIn;
   action.disabled = !initialized || busy;
   const labels = apiCopy[language.value];
@@ -16448,7 +16511,7 @@ function setup(data) {
     }
   };
 }
-var translations = { "Napredek": "Halad\xE1s", "\u0160olsko leto": "Tan\xE9v", "Raven": "Szint", "U\u010Denec": "Tanul\xF3", "Razred": "Oszt\xE1ly", "\u0160ola": "Iskola", "Vsi predmeti": "Minden tant\xE1rgy", "Mesec": "H\xF3nap", "Dele\u017E": "Ar\xE1ny", "Brez podatka": "Nincs adat", "September": "Szeptember", "Oktober": "Okt\xF3ber", "November": "November", "December": "December", "Januar": "Janu\xE1r", "Februar": "Febru\xE1r", "Marec": "M\xE1rcius", "April": "\xC1prilis", "Maj": "M\xE1jus", "Junij": "J\xFAnius", "Opravljena doma\u010Da naloga": "Elk\xE9sz\xEDtette a h\xE1zi feladatot", "Zahtevane \u0161olske potreb\u0161\u010Dine so prine\u0161ene k pouku": "Elhozta az \xF3r\xE1ra a sz\xFCks\xE9ges tanszereket", "U\u010Denec je aktivno vklju\u010Den v pouk": "A tanul\xF3 akt\xEDvan r\xE9szt vesz az \xF3r\xE1n", "Doma\u010Da naloga": "H\xE1zi feladat", "DO\u0160 Prosenjakovci": "P\xE1rtosfalvi K\xE9tnyelv\u0171 \xC1ltal\xE1nos Iskola", "Pregled shranjenih opa\u017Eanj": "Mentett megfigyel\xE9sek", "Datum": "D\xE1tum", "Oddelek": "Oszt\xE1ly", "Predmet": "Tant\xE1rgy", "Kategorija": "Kateg\xF3ria", "DA / prisotni": "Igen / jelenl\xE9v\u0151k", "Odsotni": "Hi\xE1nyz\xF3k", "Trenutno nima\u0161 dodeljenih predmetov.": "Jelenleg nincs hozz\xE1d rendelt tant\xE1rgy.", "Oddelek in predmet": "Oszt\xE1ly \xE9s tant\xE1rgy", "Shrani opa\u017Eanje": "Megfigyel\xE9s ment\xE9se", "DA": "IGEN", "NE": "NEM", "ODSOTEN": "HI\xC1NYZIK", "Opa\u017Eanje je shranjeno.": "A megfigyel\xE9s mentve.", "Vnos za ta dan, oddelek in predmet \u017Ee obstaja.": "Erre a napra, oszt\xE1lyra \xE9s tant\xE1rgyra m\xE1r van ilyen kateg\xF3ri\xE1j\xFA bejegyz\xE9s.", "Shranjevanje ni potrjeno.": "A ment\xE9s nem igazolt.", "Sloven\u0161\u010Dina": "Szlov\xE9n nyelv", "Mad\u017Ear\u0161\u010Dina": "Magyar nyelv", "Matematika": "Matematika", "MAT": "MAT", "Nem\u0161\u010Dina": "N\xE9met nyelv", "Likovna umetnost": "K\xE9pz\u0151m\u0171v\xE9szet", "Glasbena umetnost": "Zenem\u0171v\xE9szet", "Dru\u017Eba": "T\xE1rsadalomismeret", "Geografija": "F\xF6ldrajz", "Zgodovina": "T\xF6rt\xE9nelem", "Domovinska in dr\u017Eavljanska kultura in etika": "Hon- \xE9s \xE1llampolg\xE1ri kult\xFAra, valamint etika", "Spoznavanje okolja": "K\xF6rnyezetismeret", "Fizika": "Fizika", "Kemija": "K\xE9mia", "Biologija": "Biol\xF3gia", "Naravoslovje": "Term\xE9szettudom\xE1ny", "Naravoslovje in tehnika": "Term\xE9szettudom\xE1ny \xE9s technika", "Tehnika in tehnologija": "Technika \xE9s technol\xF3gia", "Gospodinjstvo": "H\xE1ztart\xE1stan", "\u0160port": "Sport", "Angle\u0161\u010Dina": "Angol nyelv", "Ustvarimo svojo aplikacijo": "K\xE9sz\xEDts\xFCnk saj\xE1t alkalmaz\xE1st", "Obdelava gradiv: Les": "Anyagmegmunk\xE1l\xE1s: fa", "Obdelava gradiv: Kovina": "Anyagmegmunk\xE1l\xE1s: f\xE9m", "\u0160port za sprostitev": "Szabadid\u0151sport", "Likovno snovanje": "Vizu\xE1lis alkot\xE1s", "Izbirni predmeti": "V\xE1laszthat\xF3 tant\xE1rgyak", "Dodelitve u\u010Diteljev": "Tan\xE1ri beoszt\xE1sok", "U\u010Ditelj": "Tan\xE1r", "Vpogled": "Betekint\xE9s", "samo svoje": "csak a saj\xE1tok", "vse": "az eg\xE9sz iskola", "V stolpcu oddelka ozna\u010Di predmete izbranega u\u010Ditelja.": "Az oszt\xE1ly oszlop\xE1ban jel\xF6ld be a kiv\xE1lasztott tan\xE1r tant\xE1rgyait.", "Dodaj predmet": "Tant\xE1rgy hozz\xE1ad\xE1sa", "Dodaj na seznam": "Hozz\xE1ad\xE1s a list\xE1hoz", "Shrani za u\u010Ditelja": "Tan\xE1ri beoszt\xE1s ment\xE9se", "Neshranjene spremembe": "Nem mentett m\xF3dos\xEDt\xE1sok", "Shranjeno za": "Mentve", "Zavr\u017Ee\u0161 neshranjene spremembe?": "Elveted a nem mentett m\xF3dos\xEDt\xE1sokat?", "Shranjevanje ni uspelo.": "A ment\xE9s sikertelen.", "Dodelitve so se spremenile ali je predmet \u017Ee zaseden. Osve\u017Ei stran.": "A beoszt\xE1s megv\xE1ltozott vagy a tant\xE1rgy m\xE1r foglalt. Friss\xEDtsd az oldalt.", "Dostop do administracije ni uspel. Uporabi skrbni\u0161ki ra\u010Dun O\u0160 Ver\u017Eej.": "Az adminisztr\xE1ci\xF3 nem \xE9rhet\u0151 el. Haszn\xE1ld az O\u0160 Ver\u017Eej rendszergazdai fi\xF3kj\xE1t." };
+var translations = { "Dele\u017E DA med prisotnimi": "Az IGEN ar\xE1nya a jelenl\xE9v\u0151k k\xF6z\xF6tt", "\u0160tevilo opa\u017Eanj": "Megfigyel\xE9sek sz\xE1ma", "Napredek": "Halad\xE1s", "\u0160olsko leto": "Tan\xE9v", "Raven": "Szint", "U\u010Denec": "Tanul\xF3", "Razred": "Oszt\xE1ly", "\u0160ola": "Iskola", "Vsi predmeti": "Minden tant\xE1rgy", "Mesec": "H\xF3nap", "Dele\u017E": "Ar\xE1ny", "Brez podatka": "Nincs adat", "September": "Szeptember", "Oktober": "Okt\xF3ber", "November": "November", "December": "December", "Januar": "Janu\xE1r", "Februar": "Febru\xE1r", "Marec": "M\xE1rcius", "April": "\xC1prilis", "Maj": "M\xE1jus", "Junij": "J\xFAnius", "Opravljena doma\u010Da naloga": "Elk\xE9sz\xEDtette a h\xE1zi feladatot", "Zahtevane \u0161olske potreb\u0161\u010Dine so prine\u0161ene k pouku": "Elhozta az \xF3r\xE1ra a sz\xFCks\xE9ges tanszereket", "U\u010Denec je aktivno vklju\u010Den v pouk": "A tanul\xF3 akt\xEDvan r\xE9szt vesz az \xF3r\xE1n", "Doma\u010Da naloga": "H\xE1zi feladat", "DO\u0160 Prosenjakovci": "P\xE1rtosfalvi K\xE9tnyelv\u0171 \xC1ltal\xE1nos Iskola", "Pregled shranjenih opa\u017Eanj": "Mentett megfigyel\xE9sek", "Datum": "D\xE1tum", "Oddelek": "Oszt\xE1ly", "Predmet": "Tant\xE1rgy", "Kategorija": "Kateg\xF3ria", "DA / prisotni": "Igen / jelenl\xE9v\u0151k", "Odsotni": "Hi\xE1nyz\xF3k", "Trenutno nima\u0161 dodeljenih predmetov.": "Jelenleg nincs hozz\xE1d rendelt tant\xE1rgy.", "Oddelek in predmet": "Oszt\xE1ly \xE9s tant\xE1rgy", "Shrani opa\u017Eanje": "Megfigyel\xE9s ment\xE9se", "DA": "IGEN", "NE": "NEM", "ODSOTEN": "HI\xC1NYZIK", "Opa\u017Eanje je shranjeno.": "A megfigyel\xE9s mentve.", "Vnos za ta dan, oddelek in predmet \u017Ee obstaja.": "Erre a napra, oszt\xE1lyra \xE9s tant\xE1rgyra m\xE1r van ilyen kateg\xF3ri\xE1j\xFA bejegyz\xE9s.", "Shranjevanje ni potrjeno.": "A ment\xE9s nem igazolt.", "Sloven\u0161\u010Dina": "Szlov\xE9n nyelv", "Mad\u017Ear\u0161\u010Dina": "Magyar nyelv", "Matematika": "Matematika", "MAT": "MAT", "Nem\u0161\u010Dina": "N\xE9met nyelv", "Likovna umetnost": "K\xE9pz\u0151m\u0171v\xE9szet", "Glasbena umetnost": "Zenem\u0171v\xE9szet", "Dru\u017Eba": "T\xE1rsadalomismeret", "Geografija": "F\xF6ldrajz", "Zgodovina": "T\xF6rt\xE9nelem", "Domovinska in dr\u017Eavljanska kultura in etika": "Hon- \xE9s \xE1llampolg\xE1ri kult\xFAra, valamint etika", "Spoznavanje okolja": "K\xF6rnyezetismeret", "Fizika": "Fizika", "Kemija": "K\xE9mia", "Biologija": "Biol\xF3gia", "Naravoslovje": "Term\xE9szettudom\xE1ny", "Naravoslovje in tehnika": "Term\xE9szettudom\xE1ny \xE9s technika", "Tehnika in tehnologija": "Technika \xE9s technol\xF3gia", "Gospodinjstvo": "H\xE1ztart\xE1stan", "\u0160port": "Sport", "Angle\u0161\u010Dina": "Angol nyelv", "Ustvarimo svojo aplikacijo": "K\xE9sz\xEDts\xFCnk saj\xE1t alkalmaz\xE1st", "Obdelava gradiv: Les": "Anyagmegmunk\xE1l\xE1s: fa", "Obdelava gradiv: Kovina": "Anyagmegmunk\xE1l\xE1s: f\xE9m", "\u0160port za sprostitev": "Szabadid\u0151sport", "Likovno snovanje": "Vizu\xE1lis alkot\xE1s", "Izbirni predmeti": "V\xE1laszthat\xF3 tant\xE1rgyak", "Dodelitve u\u010Diteljev": "Tan\xE1ri beoszt\xE1sok", "U\u010Ditelj": "Tan\xE1r", "Vpogled": "Betekint\xE9s", "samo svoje": "csak a saj\xE1tok", "vse": "az eg\xE9sz iskola", "V stolpcu oddelka ozna\u010Di predmete izbranega u\u010Ditelja.": "Az oszt\xE1ly oszlop\xE1ban jel\xF6ld be a kiv\xE1lasztott tan\xE1r tant\xE1rgyait.", "Dodaj predmet": "Tant\xE1rgy hozz\xE1ad\xE1sa", "Dodaj na seznam": "Hozz\xE1ad\xE1s a list\xE1hoz", "Shrani za u\u010Ditelja": "Tan\xE1ri beoszt\xE1s ment\xE9se", "Neshranjene spremembe": "Nem mentett m\xF3dos\xEDt\xE1sok", "Shranjeno za": "Mentve", "Zavr\u017Ee\u0161 neshranjene spremembe?": "Elveted a nem mentett m\xF3dos\xEDt\xE1sokat?", "Shranjevanje ni uspelo.": "A ment\xE9s sikertelen.", "Dodelitve so se spremenile ali je predmet \u017Ee zaseden. Osve\u017Ei stran.": "A beoszt\xE1s megv\xE1ltozott vagy a tant\xE1rgy m\xE1r foglalt. Friss\xEDtsd az oldalt.", "Dostop do administracije ni uspel. Uporabi skrbni\u0161ki ra\u010Dun O\u0160 Ver\u017Eej.": "Az adminisztr\xE1ci\xF3 nem \xE9rhet\u0151 el. Haszn\xE1ld az O\u0160 Ver\u017Eej rendszergazdai fi\xF3kj\xE1t." };
 function translated(s) {
   if (Object.hasOwn(translations, s)) return translations[s];
   const pair = s.match(/^([1-9]\. [^·]+ · )(.+)$/);
@@ -16476,7 +16539,6 @@ function bilingual(root, choice) {
   update();
 }
 bilingual(form, language);
-bilingual(document.querySelector("header strong"), language);
 language.onchange = render;
 action.onclick = async () => {
   busy = true;

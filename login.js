@@ -28,7 +28,7 @@ function charts(months) {
       shape(svg, "text", { x: 38, y: y(v) + 4, "text-anchor": "end" }, v + (percent ? "%" : ""));
     }
     let prior;
-    months.forEach(({ yes, n, total }, i) => {
+    months.forEach(({ yes, n }, i) => {
       shape(svg, "text", { x: x(i), y: 179, "text-anchor": "middle" }, ["IX", "X", "XI", "XII", "I", "II", "III", "IV", "V", "VI"][i]);
       if (percent) {
         if (!n) {
@@ -40,20 +40,18 @@ function charts(months) {
         shape(svg, "circle", { cx: x(i), cy, r: 5, fill: "#166851" });
         prior = { x: x(i), y: cy };
       } else {
-        let sum = 0;
-        for (const [v, color] of [[yes, "#166851"], [n - yes, "#bb6739"], [total - n, "#879798"]]) {
-          sum += v;
-          if (v) shape(svg, "rect", { x: x(i) - 10, y: y(sum), width: 20, height: 120 * v / maximum, fill: color });
+        for (const [value, color, offset] of [[yes, "#166851", -13], [n - yes, "#bb6739", 2]]) {
+          if (value) shape(svg, "rect", { x: x(i) + offset, y: y(value), width: 11, height: 120 * value / maximum, fill: color });
         }
       }
     });
     return fig2;
   }
   plot("Dele\u017E DA med prisotnimi", 100, true);
-  const fig = plot("\u0160tevilo opa\u017Eanj", Math.max(1, ...months.map((m) => m.total)), false);
+  const fig = plot("\u0160tevilo opa\u017Eanj", Math.max(1, ...months.flatMap((m) => [m.yes, m.n - m.yes])), false);
   const legend = document.createElement("div");
   legend.className = "legend";
-  for (const [label, color] of [["DA", "#166851"], ["NE", "#bb6739"], ["ODSOTEN", "#879798"]]) {
+  for (const [label, color] of [["DA", "#166851"], ["NE", "#bb6739"]]) {
     const item = document.createElement("span");
     item.style.setProperty("--swatch", color);
     item.textContent = label;

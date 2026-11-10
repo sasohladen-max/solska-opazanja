@@ -16347,7 +16347,7 @@ action.onclick = async () => {
       writeState = "";
       writeDetail = "";
     } else {
-      const result = await app.loginPopup({ scopes: [apiScope], extraScopesToConsent: ["https://graph.microsoft.com/User.Read"], prompt: "select_account" });
+      const result = await app.loginPopup({ scopes: [apiScope], prompt: "select_account" });
       account = result.account;
       app.setActiveAccount(account);
       await checkAccess(result.accessToken);

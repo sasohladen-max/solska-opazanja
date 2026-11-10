@@ -4,6 +4,66 @@ var __export = (target, all) => {
     __defProp(target, name3, { get: all[name3], enumerable: true });
 };
 
+// progress.js
+function progress(data, categories) {
+  const box = document.createElement("details"), heading = document.createElement("summary"), filters = document.createElement("section"), table = document.createElement("table");
+  heading.textContent = "Napredek";
+  box.append(heading, filters, table);
+  filters.className = "filters";
+  function field(label) {
+    const l = document.createElement("label"), s = document.createElement("select");
+    l.append(label, s);
+    filters.append(l);
+    return s;
+  }
+  function options(s, items) {
+    const old = s.value;
+    s.replaceChildren(...items.map(([key, label]) => new Option(label, key)));
+    if (items.some(([key]) => String(key) === old)) s.value = old;
+  }
+  const year = field("\u0160olsko leto"), level = field("Raven"), group = field("Oddelek"), student = field("U\u010Denec"), subject = field("Predmet"), category = field("Kategorija");
+  const schoolYear = (date) => Number(date.slice(0, 4)) - (Number(date.slice(5, 7)) < 9 ? 1 : 0);
+  function render2() {
+    const now = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Ljubljana" }).format(/* @__PURE__ */ new Date());
+    options(year, [.../* @__PURE__ */ new Set([schoolYear(now), ...data.events.map((r) => schoolYear(r[0]))])].sort((a, b) => b - a).map((y) => [y, y + "/" + (y + 1)]));
+    options(level, [["class", "Razred"], ["student", "U\u010Denec"], ...data.school ? [["school", "\u0160ola"]] : []]);
+    options(group, [...new Set(data.pupils.map((p) => p.group))].map((g) => [g, g]));
+    options(student, data.pupils.filter((p) => p.group === group.value).map((p) => [p.id, p.name]));
+    group.parentElement.hidden = level.value === "school";
+    student.parentElement.hidden = level.value !== "student";
+    const rows = data.events.filter(([date, g, s, c, id]) => schoolYear(date) === Number(year.value) && (level.value === "school" || g === group.value) && (level.value !== "student" || id === student.value));
+    options(subject, [["", "Vsi predmeti"], ...[...new Set(rows.map((r) => r[2]))].map((s) => [s, s])]);
+    options(category, Object.entries(categories));
+    table.replaceChildren();
+    const head = table.createTHead().insertRow();
+    for (const name3 of ["Mesec", "DA / prisotni", "Dele\u017E", "Odsotni"]) {
+      const th = document.createElement("th");
+      th.textContent = name3;
+      head.append(th);
+    }
+    const body = table.createTBody();
+    for (let i = 0; i < 10; i++) {
+      const month = (8 + i) % 12 + 1, key = Number(year.value) + (month < 9 ? 1 : 0) + "-" + String(month).padStart(2, "0");
+      const marks = rows.filter((r) => r[0].startsWith(key) && r[3] === category.value && (!subject.value || subject.value === r[2])).map((r) => r[5]);
+      const yes = marks.filter((m) => m === "YES").length, n = marks.filter((m) => m !== "ABSENT").length, row = body.insertRow();
+      row.insertCell().textContent = ["September", "Oktober", "November", "December", "Januar", "Februar", "Marec", "April", "Maj", "Junij"][i];
+      row.insertCell().textContent = yes + " / " + n;
+      const cell = row.insertCell();
+      if (n) {
+        const bar = document.createElement("meter");
+        bar.min = 0;
+        bar.max = 1;
+        bar.value = yes / n;
+        cell.append(bar, " " + (yes / n).toLocaleString("sl", { style: "percent", maximumFractionDigits: 1 }));
+      } else cell.textContent = "Brez podatka";
+      row.insertCell().textContent = marks.length - n;
+    }
+  }
+  filters.onchange = render2;
+  render2();
+  return { box, render: render2 };
+}
+
 // node_modules/@azure/msal-common/dist-browser/constants/AADServerParamKeys.mjs
 var AADServerParamKeys_exports = {};
 __export(AADServerParamKeys_exports, {
@@ -16273,9 +16333,34 @@ var form = document.createElement("form");
 apiStatus.after(form);
 function setup(data) {
   form.replaceChildren();
-  const hu = language.value === "hu";
+  const hu = false;
+  const categories = { homework: hu ? "H\xE1zi feladat" : "Opravljena doma\u010Da naloga", category2: hu ? "2. kateg\xF3ria" : "Zahtevane \u0161olske potreb\u0161\u010Dine so prine\u0161ene k pouku", category3: hu ? "3. kateg\xF3ria" : "U\u010Denec je aktivno vklju\u010Den v pouk" };
+  const history = document.createElement("details"), heading = document.createElement("summary"), scroll = document.createElement("div"), table = document.createElement("table");
+  heading.textContent = hu ? "Mentett megfigyel\xE9sek" : "Pregled shranjenih opa\u017Eanj";
+  history.append(heading, scroll);
+  scroll.append(table);
+  form.append(history);
+  const head = table.createTHead().insertRow();
+  for (const label of hu ? ["D\xE1tum", "Oszt\xE1ly", "Tant\xE1rgy", "Kateg\xF3ria", "Igen / jelen", "Hi\xE1nyzik"] : ["Datum", "Oddelek", "Predmet", "Kategorija", "DA / prisotni", "Odsotni"]) {
+    const th = document.createElement("th");
+    th.textContent = label;
+    head.append(th);
+  }
+  function historyRows(rows) {
+    const body = document.createElement("tbody");
+    for (const r of rows) {
+      const n = r.YES + r.NO;
+      const row = body.insertRow();
+      for (const text of [r.date, r.group, r.subject, categories[r.category] ?? r.category, n ? r.YES + " / " + n + " \xB7 " + (r.YES / n).toLocaleString(hu ? "hu" : "sl", { style: "percent", maximumFractionDigits: 1 }) : "\u2014", r.ABSENT]) row.insertCell().textContent = text;
+    }
+    table.tBodies[0]?.remove();
+    table.append(body);
+  }
+  historyRows(data.summaries ?? []);
+  const chart = progress(data, categories);
+  form.prepend(chart.box);
   if (!data.pairs.length) {
-    form.textContent = hu ? "Nincs tant\xE1rgy hozz\xE1rendelve." : "Trenutno nima\u0161 dodeljenih predmetov.";
+    form.append(hu ? "Nincs tant\xE1rgy hozz\xE1rendelve." : "Trenutno nima\u0161 dodeljenih predmetov.");
     return;
   }
   function field(text, input) {
@@ -16285,15 +16370,25 @@ function setup(data) {
     form.append(label);
     return input;
   }
-  const pair = field(hu ? "Oszt\xE1ly \xE9s tant\xE1rgy" : "Oddelek in predmet", document.createElement("select"));
-  data.pairs.forEach(([g, s], i) => pair.add(new Option(g + " \xB7 " + s, i)));
+  const groupField = field("Oddelek", document.createElement("select")), pair = field("Predmet", document.createElement("select"));
+  for (const g of new Set(data.pairs.map((p) => p[0]))) groupField.add(new Option(g, g));
+  function subjects() {
+    pair.replaceChildren();
+    data.pairs.forEach(([g, s], i) => {
+      if (g === groupField.value) pair.add(new Option(s, i));
+    });
+  }
+  subjects();
+  groupField.onchange = () => {
+    subjects();
+    draw();
+  };
   const date = field(hu ? "D\xE1tum" : "Datum", document.createElement("input"));
   date.type = "date";
   date.required = true;
   date.value = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Ljubljana" }).format(/* @__PURE__ */ new Date());
-  const title = document.createElement("h2");
-  title.textContent = hu ? "H\xE1zi feladat" : "Doma\u010Da naloga";
-  form.append(title);
+  const category = field(hu ? "Kateg\xF3ria" : "Kategorija", document.createElement("select"));
+  for (const [id, label] of Object.entries(categories)) category.add(new Option(label, id));
   const list = document.createElement("div"), submit = document.createElement("button"), status = document.createElement("p");
   status.setAttribute("role", "status");
   submit.textContent = hu ? "Ment\xE9s" : "Shrani opa\u017Eanje";
@@ -16301,18 +16396,32 @@ function setup(data) {
   function draw() {
     list.replaceChildren();
     status.textContent = "";
-    for (const p of data.pupils.filter((p2) => p2.group === data.pairs[pair.value][0])) {
-      const label = document.createElement("label");
-      label.style.display = "block";
-      const pick = document.createElement("select");
-      pick.name = p.id;
-      pick.required = true;
-      for (const [value, caption] of [["", "\u2014"], ["YES", hu ? "IGEN" : "DA"], ["NO", hu ? "NEM" : "NE"], ["ABSENT", hu ? "HI\xC1NYZIK" : "ODSOTEN"]]) pick.add(new Option(caption, value));
-      label.append(p.name + " ", pick);
-      list.append(label);
+    const t = document.createElement("table");
+    list.append(t);
+    const h = t.createTHead().insertRow();
+    for (const name3 of ["U\u010Denec", "DA", "NE", "ODSOTEN"]) {
+      const th = document.createElement("th");
+      th.textContent = name3;
+      h.append(th);
+    }
+    const body = t.createTBody();
+    for (const p of data.pupils.filter((p2) => p2.group === groupField.value)) {
+      const row = body.insertRow();
+      row.insertCell().textContent = p.name;
+      for (const [value, label] of [["YES", "DA"], ["NO", "NE"], ["ABSENT", "ODSOTEN"]]) {
+        const pick = document.createElement("input");
+        pick.type = "radio";
+        pick.name = p.id;
+        pick.value = value;
+        pick.required = true;
+        pick.setAttribute("aria-label", p.name + " \xB7 " + (language.value === "hu" ? translated(label) : label));
+        const target = document.createElement("label");
+        target.append(pick);
+        row.insertCell().append(target);
+      }
     }
   }
-  pair.onchange = draw;
+  pair.onchange = category.onchange = draw;
   draw();
   form.onsubmit = async (e) => {
     e.preventDefault();
@@ -16322,7 +16431,14 @@ function setup(data) {
     try {
       const [group, subject] = data.pairs[pair.value];
       const token = await app.acquireTokenSilent({ account, scopes: [apiScope] });
-      const r = await fetch(base + "/teacher/save", { method: "POST", headers: { ...await teacherHeaders(token.accessToken), "Content-Type": "application/json" }, body: JSON.stringify({ group, subject, date: date.value, category: "homework", marks: Object.fromEntries(new FormData(form)) }) });
+      const r = await fetch(base + "/teacher/save", { method: "POST", headers: { ...await teacherHeaders(token.accessToken), "Content-Type": "application/json" }, body: JSON.stringify({ group, subject, date: date.value, category: category.value, marks: Object.fromEntries(new FormData(form)) }) });
+      if (r.ok) {
+        for (const [id, mark] of new FormData(form)) data.events.push([date.value, group, subject, category.value, id, mark]);
+        chart.render();
+        const marks = [...list.querySelectorAll("input:checked")].map((x) => x.value);
+        data.summaries.unshift({ date: date.value, group, subject, category: category.value, ...Object.fromEntries(["YES", "NO", "ABSENT"].map((k) => [k, marks.filter((m) => m === k).length])) });
+        historyRows(data.summaries);
+      }
       status.textContent = r.ok ? hu ? "Mentve." : "Opa\u017Eanje je shranjeno." : r.status === 409 ? hu ? "M\xE1r mentve." : "Vnos za ta dan, oddelek in predmet \u017Ee obstaja." : "HTTP " + r.status;
     } catch {
       status.textContent = hu ? "A ment\xE9s nem igazolt." : "Shranjevanje ni potrjeno.";
@@ -16332,6 +16448,35 @@ function setup(data) {
     }
   };
 }
+var translations = { "Napredek": "Halad\xE1s", "\u0160olsko leto": "Tan\xE9v", "Raven": "Szint", "U\u010Denec": "Tanul\xF3", "Razred": "Oszt\xE1ly", "\u0160ola": "Iskola", "Vsi predmeti": "Minden tant\xE1rgy", "Mesec": "H\xF3nap", "Dele\u017E": "Ar\xE1ny", "Brez podatka": "Nincs adat", "September": "Szeptember", "Oktober": "Okt\xF3ber", "November": "November", "December": "December", "Januar": "Janu\xE1r", "Februar": "Febru\xE1r", "Marec": "M\xE1rcius", "April": "\xC1prilis", "Maj": "M\xE1jus", "Junij": "J\xFAnius", "Opravljena doma\u010Da naloga": "Elk\xE9sz\xEDtette a h\xE1zi feladatot", "Zahtevane \u0161olske potreb\u0161\u010Dine so prine\u0161ene k pouku": "Elhozta az \xF3r\xE1ra a sz\xFCks\xE9ges tanszereket", "U\u010Denec je aktivno vklju\u010Den v pouk": "A tanul\xF3 akt\xEDvan r\xE9szt vesz az \xF3r\xE1n", "Doma\u010Da naloga": "H\xE1zi feladat", "DO\u0160 Prosenjakovci": "P\xE1rtosfalvi K\xE9tnyelv\u0171 \xC1ltal\xE1nos Iskola", "Pregled shranjenih opa\u017Eanj": "Mentett megfigyel\xE9sek", "Datum": "D\xE1tum", "Oddelek": "Oszt\xE1ly", "Predmet": "Tant\xE1rgy", "Kategorija": "Kateg\xF3ria", "DA / prisotni": "Igen / jelenl\xE9v\u0151k", "Odsotni": "Hi\xE1nyz\xF3k", "Trenutno nima\u0161 dodeljenih predmetov.": "Jelenleg nincs hozz\xE1d rendelt tant\xE1rgy.", "Oddelek in predmet": "Oszt\xE1ly \xE9s tant\xE1rgy", "Shrani opa\u017Eanje": "Megfigyel\xE9s ment\xE9se", "DA": "IGEN", "NE": "NEM", "ODSOTEN": "HI\xC1NYZIK", "Opa\u017Eanje je shranjeno.": "A megfigyel\xE9s mentve.", "Vnos za ta dan, oddelek in predmet \u017Ee obstaja.": "Erre a napra, oszt\xE1lyra \xE9s tant\xE1rgyra m\xE1r van ilyen kateg\xF3ri\xE1j\xFA bejegyz\xE9s.", "Shranjevanje ni potrjeno.": "A ment\xE9s nem igazolt.", "Sloven\u0161\u010Dina": "Szlov\xE9n nyelv", "Mad\u017Ear\u0161\u010Dina": "Magyar nyelv", "Matematika": "Matematika", "MAT": "MAT", "Nem\u0161\u010Dina": "N\xE9met nyelv", "Likovna umetnost": "K\xE9pz\u0151m\u0171v\xE9szet", "Glasbena umetnost": "Zenem\u0171v\xE9szet", "Dru\u017Eba": "T\xE1rsadalomismeret", "Geografija": "F\xF6ldrajz", "Zgodovina": "T\xF6rt\xE9nelem", "Domovinska in dr\u017Eavljanska kultura in etika": "Hon- \xE9s \xE1llampolg\xE1ri kult\xFAra, valamint etika", "Spoznavanje okolja": "K\xF6rnyezetismeret", "Fizika": "Fizika", "Kemija": "K\xE9mia", "Biologija": "Biol\xF3gia", "Naravoslovje": "Term\xE9szettudom\xE1ny", "Naravoslovje in tehnika": "Term\xE9szettudom\xE1ny \xE9s technika", "Tehnika in tehnologija": "Technika \xE9s technol\xF3gia", "Gospodinjstvo": "H\xE1ztart\xE1stan", "\u0160port": "Sport", "Angle\u0161\u010Dina": "Angol nyelv", "Ustvarimo svojo aplikacijo": "K\xE9sz\xEDts\xFCnk saj\xE1t alkalmaz\xE1st", "Obdelava gradiv: Les": "Anyagmegmunk\xE1l\xE1s: fa", "Obdelava gradiv: Kovina": "Anyagmegmunk\xE1l\xE1s: f\xE9m", "\u0160port za sprostitev": "Szabadid\u0151sport", "Likovno snovanje": "Vizu\xE1lis alkot\xE1s", "Izbirni predmeti": "V\xE1laszthat\xF3 tant\xE1rgyak", "Dodelitve u\u010Diteljev": "Tan\xE1ri beoszt\xE1sok", "U\u010Ditelj": "Tan\xE1r", "Vpogled": "Betekint\xE9s", "samo svoje": "csak a saj\xE1tok", "vse": "az eg\xE9sz iskola", "V stolpcu oddelka ozna\u010Di predmete izbranega u\u010Ditelja.": "Az oszt\xE1ly oszlop\xE1ban jel\xF6ld be a kiv\xE1lasztott tan\xE1r tant\xE1rgyait.", "Dodaj predmet": "Tant\xE1rgy hozz\xE1ad\xE1sa", "Dodaj na seznam": "Hozz\xE1ad\xE1s a list\xE1hoz", "Shrani za u\u010Ditelja": "Tan\xE1ri beoszt\xE1s ment\xE9se", "Neshranjene spremembe": "Nem mentett m\xF3dos\xEDt\xE1sok", "Shranjeno za": "Mentve", "Zavr\u017Ee\u0161 neshranjene spremembe?": "Elveted a nem mentett m\xF3dos\xEDt\xE1sokat?", "Shranjevanje ni uspelo.": "A ment\xE9s sikertelen.", "Dodelitve so se spremenile ali je predmet \u017Ee zaseden. Osve\u017Ei stran.": "A beoszt\xE1s megv\xE1ltozott vagy a tant\xE1rgy m\xE1r foglalt. Friss\xEDtsd az oldalt.", "Dostop do administracije ni uspel. Uporabi skrbni\u0161ki ra\u010Dun O\u0160 Ver\u017Eej.": "Az adminisztr\xE1ci\xF3 nem \xE9rhet\u0151 el. Haszn\xE1ld az O\u0160 Ver\u017Eej rendszergazdai fi\xF3kj\xE1t." };
+function translated(s) {
+  if (Object.hasOwn(translations, s)) return translations[s];
+  const pair = s.match(/^([1-9]\. [^·]+ · )(.+)$/);
+  if (pair) return pair[1] + translated(pair[2]);
+  const grade = s.match(/^(.+) (HOP|[123])$/);
+  if (grade) return translated(grade[1]) + " " + grade[2];
+  if (s.startsWith("Shranjeno za ")) return translations["Shranjeno za"] + " " + s.slice("Shranjeno za ".length);
+  return s;
+}
+function bilingual(root, choice) {
+  const originals = /* @__PURE__ */ new WeakMap();
+  function update() {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    while (walker.nextNode()) {
+      const n = walker.currentNode;
+      if (choice.contains(n) || n.parentElement?.closest("script,style")) continue;
+      const old = originals.get(n), source = old && n.data === old.result ? old.source : n.data;
+      const result = choice.value === "hu" ? source.replace(/^(\s*)(.*?)(\s*)$/s, (_, a, b, c) => a + translated(b) + c) : source;
+      originals.set(n, { source, result });
+      if (n.data !== result) n.data = result;
+    }
+  }
+  choice.addEventListener("change", update);
+  new MutationObserver(update).observe(root, { subtree: true, childList: true, characterData: true });
+  update();
+}
+bilingual(form, language);
+bilingual(document.querySelector("header strong"), language);
 language.onchange = render;
 action.onclick = async () => {
   busy = true;
